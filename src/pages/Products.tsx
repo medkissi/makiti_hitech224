@@ -167,15 +167,31 @@ export default function Products() {
     }
 
     try {
-      // Convert image file to base64 data URL if present
-      let imageUrl: string | null = imagePreview;
+      let imageUrl: string | null = editingProduct?.image_url || null;
       
+      // Upload image to storage if a new file is selected
       if (imageFile) {
-        imageUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(imageFile);
-        });
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${formData.code_modele}-${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(fileName, imageFile, {
+            cacheControl: '3600',
+            upsert: true
+          });
+        
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error('Erreur lors de l\'upload de l\'image');
+        }
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(uploadData.path);
+        
+        imageUrl = publicUrl;
       }
 
       const productData = {
