@@ -71,8 +71,9 @@ export default function Products() {
     description: "",
     categorie_id: "",
     prix_unitaire: "",
-    image_url: "",
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [stockData, setStockData] = useState<Record<Taille, string>>({
     XS: "0", S: "0", M: "0", L: "0", XL: "0", XXL: "0", "3XL": "0", "4XL": "0", "5XL": "0"
   });
@@ -120,8 +121,9 @@ export default function Products() {
       description: "",
       categorie_id: "",
       prix_unitaire: "",
-      image_url: "",
     });
+    setImageFile(null);
+    setImagePreview(null);
     setStockData({
       XS: "0", S: "0", M: "0", L: "0", XL: "0", XXL: "0", "3XL": "0", "4XL": "0", "5XL": "0"
     });
@@ -136,8 +138,8 @@ export default function Products() {
       description: product.description || "",
       categorie_id: product.categorie_id || "",
       prix_unitaire: product.prix_unitaire.toString(),
-      image_url: product.image_url || "",
     });
+    setImagePreview(product.image_url);
     
     // Set stock data
     const newStockData: Record<Taille, string> = {
@@ -165,13 +167,24 @@ export default function Products() {
     }
 
     try {
+      // Convert image file to base64 data URL if present
+      let imageUrl: string | null = imagePreview;
+      
+      if (imageFile) {
+        imageUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(imageFile);
+        });
+      }
+
       const productData = {
         code_modele: formData.code_modele,
         nom: formData.nom,
         description: formData.description || null,
         categorie_id: formData.categorie_id || null,
         prix_unitaire: parseInt(formData.prix_unitaire),
-        image_url: formData.image_url || null,
+        image_url: imageUrl,
       };
 
       if (editingProduct) {
@@ -352,13 +365,35 @@ export default function Products() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="image_url">URL de l'image</Label>
-                  <Input
-                    id="image_url"
-                    placeholder="https://..."
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  />
+                  <Label htmlFor="image">Photo du produit</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-24 h-24 rounded-lg border-2 border-dashed border-border bg-muted flex items-center justify-center overflow-hidden">
+                      {imagePreview ? (
+                        <img src={imagePreview} alt="Aperçu" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setImageFile(file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => setImagePreview(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Formats: JPG, PNG, WEBP
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

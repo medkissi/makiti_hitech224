@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import logo from "@/assets/logo.png";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -89,7 +90,10 @@ export function AppLayout({ children }: AppLayoutProps) {
         >
           <Menu className="h-6 w-6" />
         </Button>
-        <h1 className="font-display font-bold text-lg text-primary">{APP_NAME}</h1>
+        <div className="flex items-center gap-2">
+          <img src={logo} alt={APP_NAME} className="h-8 w-8 rounded-lg" />
+          <h1 className="font-semibold text-lg text-primary">{APP_NAME}</h1>
+        </div>
         <div className={cn("flex items-center gap-1", getStatusColor())}>
           {getStatusIcon()}
         </div>
@@ -112,9 +116,12 @@ export function AppLayout({ children }: AppLayoutProps) {
       >
         {/* Sidebar header */}
         <div className="flex items-center justify-between p-6 border-b border-sidebar-border">
-          <div>
-            <h1 className="font-display font-bold text-xl">{APP_NAME}</h1>
-            <p className="text-sm text-sidebar-foreground/70">Gestion de boutique</p>
+          <div className="flex items-center gap-3">
+            <img src={logo} alt={APP_NAME} className="h-10 w-10 rounded-lg" />
+            <div>
+              <h1 className="font-semibold text-xl">{APP_NAME}</h1>
+              <p className="text-sm text-sidebar-foreground/70">Gestion de boutique</p>
+            </div>
           </div>
           <Button
             variant="ghost"
