@@ -269,7 +269,7 @@ export default function ListeVentes() {
   );
 
   return (
-    <AppLayout>
+    <AppLayout className="print-landscape">
       <PageHeader
         title="Liste des Ventes"
         description="Historique complet des ventes"

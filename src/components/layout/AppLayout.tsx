@@ -24,7 +24,10 @@ import logo from "@/assets/logo.png";
 
 interface AppLayoutProps {
   children: ReactNode;
+  className?: string;
 }
+
+export type { AppLayoutProps };
 
 const baseMenuItems = [
   { path: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
@@ -39,7 +42,7 @@ const proprietaireMenuItems = [
   { path: "/utilisateurs", label: "Utilisateurs", icon: Users },
 ];
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children, className }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -90,7 +93,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={cn("min-h-screen bg-background", className)}>
       {/* Mobile header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-16 bg-card border-b shadow-card">
         <Button

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, ShoppingCart, Minus, Trash2, CreditCard } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, ShoppingCart, Minus, Trash2, CreditCard, Search } from "lucide-react";
 import { StockIndicator } from "@/components/StockIndicator";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -64,6 +64,7 @@ export default function Ventes() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [modePaiement, setModePaiement] = useState<ModePaiement>("especes");
   const [processing, setProcessing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -268,6 +269,16 @@ export default function Ventes() {
       .map((s) => s.taille);
   };
 
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return products;
+    const query = searchQuery.toLowerCase();
+    return products.filter(
+      (p) =>
+        p.nom.toLowerCase().includes(query) ||
+        p.code_modele.toLowerCase().includes(query)
+    );
+  }, [products, searchQuery]);
+
   return (
     <AppLayout>
       <PageHeader
@@ -291,7 +302,18 @@ export default function Ventes() {
         <div className="lg:col-span-2">
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Produits disponibles</CardTitle>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <CardTitle>Produits disponibles</CardTitle>
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher un produit..."
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -300,15 +322,15 @@ export default function Ventes() {
                     <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />
                   ))}
                 </div>
-              ) : products.length === 0 ? (
+              ) : filteredProducts.length === 0 ? (
                 <EmptyState
                   icon={<ShoppingCart className="h-8 w-8" />}
-                  title="Aucun produit"
-                  description="Ajoutez des produits avec du stock pour commencer"
+                  title={searchQuery ? "Aucun résultat" : "Aucun produit"}
+                  description={searchQuery ? "Aucun produit ne correspond à votre recherche" : "Ajoutez des produits avec du stock pour commencer"}
                 />
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {products.map((product) => {
+                  {filteredProducts.map((product) => {
                     const totalStock = product.stock.reduce((sum, s) => sum + s.quantite_actuelle, 0);
                     return (
                       <div

@@ -192,4 +192,11 @@
   body {
     @apply bg-white text-black;
   }
+
+  /* Landscape print mode */
+  .print-landscape {
+    @page {
+      size: landscape;
+    }
+  }
 }
