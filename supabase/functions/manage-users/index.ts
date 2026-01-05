@@ -24,11 +24,19 @@ interface UpdateRolePayload {
   new_role: 'proprietaire' | 'employe'
 }
 
+interface UpdateProfilePayload {
+  action: 'update_profile'
+  user_id: string
+  nom_complet?: string
+  telephone?: string
+  new_role?: 'proprietaire' | 'employe'
+}
+
 interface ListUsersPayload {
   action: 'list'
 }
 
-type RequestPayload = CreateUserPayload | DeleteUserPayload | UpdateRolePayload | ListUsersPayload
+type RequestPayload = CreateUserPayload | DeleteUserPayload | UpdateRolePayload | UpdateProfilePayload | ListUsersPayload
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -268,6 +276,61 @@ Deno.serve(async (req) => {
         }
 
         console.log('Role updated successfully')
+        return new Response(
+          JSON.stringify({ success: true }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      case 'update_profile': {
+        const { user_id, nom_complet, telephone, new_role } = payload as UpdateProfilePayload
+
+        if (!user_id) {
+          return new Response(
+            JSON.stringify({ error: 'Missing user_id' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log('Updating profile for user:', user_id)
+
+        // Update profile if nom_complet or telephone provided
+        if (nom_complet !== undefined || telephone !== undefined) {
+          const updateData: { nom_complet?: string; telephone?: string } = {}
+          if (nom_complet !== undefined) updateData.nom_complet = nom_complet
+          if (telephone !== undefined) updateData.telephone = telephone
+
+          const { error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .update(updateData)
+            .eq('user_id', user_id)
+
+          if (profileError) {
+            console.error('Error updating profile:', profileError)
+            return new Response(
+              JSON.stringify({ error: profileError.message }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+          console.log('Profile updated successfully')
+        }
+
+        // Update role if provided
+        if (new_role) {
+          const { error: roleError } = await supabaseAdmin
+            .from('user_roles')
+            .upsert({ user_id, role: new_role }, { onConflict: 'user_id' })
+
+          if (roleError) {
+            console.error('Error updating role:', roleError)
+            return new Response(
+              JSON.stringify({ error: roleError.message }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+          console.log('Role updated successfully')
+        }
+
         return new Response(
           JSON.stringify({ success: true }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

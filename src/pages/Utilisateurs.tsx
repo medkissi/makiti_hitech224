@@ -69,9 +69,11 @@ export default function Utilisateurs() {
   const [newUserNom, setNewUserNom] = useState("");
   const [newUserRole, setNewUserRole] = useState<AppRole>("employe");
 
-  // Edit role dialog state
+  // Edit user dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [editNom, setEditNom] = useState("");
+  const [editTelephone, setEditTelephone] = useState("");
   const [editRole, setEditRole] = useState<AppRole>("employe");
 
   // Delete confirmation state
@@ -179,8 +181,17 @@ export default function Utilisateurs() {
     }
   };
 
-  const handleUpdateRole = async () => {
+  const handleUpdateUser = async () => {
     if (!editingUser) return;
+
+    if (!editNom.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Le nom est obligatoire",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setActionLoading(true);
     try {
@@ -188,8 +199,10 @@ export default function Utilisateurs() {
 
       const response = await supabase.functions.invoke('manage-users', {
         body: { 
-          action: 'update_role',
+          action: 'update_profile',
           user_id: editingUser.id,
+          nom_complet: editNom.trim(),
+          telephone: editTelephone.trim() || null,
           new_role: editRole
         },
         headers: {
@@ -207,17 +220,17 @@ export default function Utilisateurs() {
 
       toast({
         title: "Succès",
-        description: `Rôle de ${editingUser.nom_complet} modifié avec succès`,
+        description: `Utilisateur ${editNom} modifié avec succès`,
       });
 
       setEditDialogOpen(false);
       setEditingUser(null);
       fetchUsers();
     } catch (error: any) {
-      console.error('Error updating role:', error);
+      console.error('Error updating user:', error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de modifier le rôle",
+        description: error.message || "Impossible de modifier l'utilisateur",
         variant: "destructive",
       });
     } finally {
@@ -279,6 +292,8 @@ export default function Utilisateurs() {
 
   const openEditDialog = (user: UserData) => {
     setEditingUser(user);
+    setEditNom(user.nom_complet);
+    setEditTelephone(user.telephone || "");
     setEditRole(user.role);
     setEditDialogOpen(true);
   };
@@ -509,18 +524,39 @@ export default function Utilisateurs() {
           </DialogContent>
         </Dialog>
 
-        {/* Edit Role Dialog */}
+        {/* Edit User Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Modifier le rôle</DialogTitle>
+              <DialogTitle>Modifier l'utilisateur</DialogTitle>
               <DialogDescription>
-                Changez le rôle de {editingUser?.nom_complet}
+                Modifiez les informations de {editingUser?.email}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Nouveau rôle</Label>
+                <Label htmlFor="edit-nom">Nom complet</Label>
+                <Input
+                  id="edit-nom"
+                  placeholder="Ex: Jean Dupont"
+                  value={editNom}
+                  onChange={(e) => setEditNom(e.target.value)}
+                  disabled={actionLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-telephone">Téléphone</Label>
+                <Input
+                  id="edit-telephone"
+                  type="tel"
+                  placeholder="Ex: +224 620 00 00 00"
+                  value={editTelephone}
+                  onChange={(e) => setEditTelephone(e.target.value)}
+                  disabled={actionLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Rôle</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -530,7 +566,7 @@ export default function Utilisateurs() {
                         ? "border-primary bg-primary/5"
                         : "border-border hover:border-primary/50"
                     }`}
-                    disabled={actionLoading}
+                    disabled={actionLoading || editingUser?.id === currentUser?.id}
                   >
                     <UserCheck className="h-5 w-5 mx-auto mb-2" />
                     <p className="font-medium text-sm">Employé</p>
@@ -543,12 +579,15 @@ export default function Utilisateurs() {
                         ? "border-primary bg-primary/5"
                         : "border-border hover:border-primary/50"
                     }`}
-                    disabled={actionLoading}
+                    disabled={actionLoading || editingUser?.id === currentUser?.id}
                   >
                     <Store className="h-5 w-5 mx-auto mb-2" />
                     <p className="font-medium text-sm">Propriétaire</p>
                   </button>
                 </div>
+                {editingUser?.id === currentUser?.id && (
+                  <p className="text-xs text-muted-foreground">Vous ne pouvez pas modifier votre propre rôle</p>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -560,7 +599,7 @@ export default function Utilisateurs() {
                 Annuler
               </Button>
               <Button 
-                onClick={handleUpdateRole}
+                onClick={handleUpdateUser}
                 disabled={actionLoading}
               >
                 {actionLoading ? (
