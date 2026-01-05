@@ -263,16 +263,37 @@ Deno.serve(async (req) => {
         console.log('Updating role for user:', user_id, 'to:', new_role)
 
         // Update or insert role
-        const { error: upsertError } = await supabaseAdmin
+        const { data: existingRole } = await supabaseAdmin
           .from('user_roles')
-          .upsert({ user_id, role: new_role }, { onConflict: 'user_id' })
+          .select('id')
+          .eq('user_id', user_id)
+          .single()
 
-        if (upsertError) {
-          console.error('Error updating role:', upsertError)
-          return new Response(
-            JSON.stringify({ error: upsertError.message }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
+        if (existingRole) {
+          const { error: updateError } = await supabaseAdmin
+            .from('user_roles')
+            .update({ role: new_role })
+            .eq('user_id', user_id)
+
+          if (updateError) {
+            console.error('Error updating role:', updateError)
+            return new Response(
+              JSON.stringify({ error: updateError.message }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+        } else {
+          const { error: insertError } = await supabaseAdmin
+            .from('user_roles')
+            .insert({ user_id, role: new_role })
+
+          if (insertError) {
+            console.error('Error inserting role:', insertError)
+            return new Response(
+              JSON.stringify({ error: insertError.message }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
         }
 
         console.log('Role updated successfully')
@@ -317,16 +338,40 @@ Deno.serve(async (req) => {
 
         // Update role if provided
         if (new_role) {
-          const { error: roleError } = await supabaseAdmin
+          // First try to update existing role
+          const { data: existingRole } = await supabaseAdmin
             .from('user_roles')
-            .upsert({ user_id, role: new_role }, { onConflict: 'user_id' })
+            .select('id')
+            .eq('user_id', user_id)
+            .single()
 
-          if (roleError) {
-            console.error('Error updating role:', roleError)
-            return new Response(
-              JSON.stringify({ error: roleError.message }),
-              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
+          if (existingRole) {
+            // Update existing role
+            const { error: roleError } = await supabaseAdmin
+              .from('user_roles')
+              .update({ role: new_role })
+              .eq('user_id', user_id)
+
+            if (roleError) {
+              console.error('Error updating role:', roleError)
+              return new Response(
+                JSON.stringify({ error: roleError.message }),
+                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
+          } else {
+            // Insert new role
+            const { error: roleError } = await supabaseAdmin
+              .from('user_roles')
+              .insert({ user_id, role: new_role })
+
+            if (roleError) {
+              console.error('Error inserting role:', roleError)
+              return new Response(
+                JSON.stringify({ error: roleError.message }),
+                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              )
+            }
           }
           console.log('Role updated successfully')
         }

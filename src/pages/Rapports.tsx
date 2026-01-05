@@ -252,16 +252,19 @@ export default function Rapports() {
           title="Chiffre d'affaires"
           value={formatCurrency(totalStats.totalVentes)}
           icon={<TrendingUp className="h-6 w-6" />}
+          iconClassName="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
         />
         <StatCard
           title="Nombre de ventes"
           value={totalStats.nombreVentes}
           icon={<ShoppingCart className="h-6 w-6" />}
+          iconClassName="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
         />
         <StatCard
           title="Panier moyen"
           value={formatCurrency(totalStats.moyenneVente)}
           icon={<Package className="h-6 w-6" />}
+          iconClassName="bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400"
         />
       </div>
 

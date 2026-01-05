@@ -106,10 +106,10 @@ export default function Dashboard() {
         title={`${greeting()}, ${profile?.nom_complet?.split(" ")[0] || "Utilisateur"} !`}
         description={`${formatDate(new Date())} - ${userRole === "proprietaire" ? "Propriétaire" : "Employé"}`}
         actions={
-          <Link to="/plan-travail">
+          <Link to="/ventes">
             <Button className="gradient-primary text-primary-foreground gap-2">
-              <Calendar className="h-4 w-4" />
-              Plan du jour
+              <ShoppingCart className="h-4 w-4" />
+              Nouvelle vente
             </Button>
           </Link>
         }
@@ -157,10 +157,10 @@ export default function Dashboard() {
                 <span>Nouvelle vente</span>
               </Button>
             </Link>
-            <Link to="/plan-travail">
+            <Link to="/liste-ventes">
               <Button variant="outline" className="w-full h-20 flex-col gap-2">
-                <Calendar className="h-6 w-6" />
-                <span>Plan de travail</span>
+                <TrendingUp className="h-6 w-6" />
+                <span>Liste des ventes</span>
               </Button>
             </Link>
             <Link to="/produits">
