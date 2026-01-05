@@ -6,6 +6,7 @@ interface StatCardProps {
   title: string;
   value: string | number;
   icon: ReactNode;
+  iconClassName?: string;
   trend?: {
     value: number;
     isPositive: boolean;
@@ -13,7 +14,7 @@ interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({ title, value, icon, trend, className }: StatCardProps) {
+export function StatCard({ title, value, icon, iconClassName, trend, className }: StatCardProps) {
   return (
     <Card className={cn("shadow-card", className)}>
       <CardContent className="p-6">
@@ -32,7 +33,7 @@ export function StatCard({ title, value, icon, trend, className }: StatCardProps
               </p>
             )}
           </div>
-          <div className="p-3 rounded-xl bg-primary/10 text-primary">
+          <div className={cn("p-3 rounded-xl", iconClassName || "bg-primary/10 text-primary")}>
             {icon}
           </div>
         </div>
