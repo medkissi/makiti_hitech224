@@ -49,6 +49,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { AppRole } from "@/lib/constants";
 import { logActivity } from "@/hooks/useActivityLogger";
+import ActivityLogViewer from "@/components/ActivityLogViewer";
 
 interface UserData {
   id: string;
@@ -648,6 +649,9 @@ export default function Utilisateurs() {
             )}
           </CardContent>
         </Card>
+
+        {/* Activity History */}
+        <ActivityLogViewer />
 
         {/* Create User Dialog */}
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>

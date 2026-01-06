@@ -13,7 +13,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { APP_NAME, CURRENCY } from "@/lib/constants";
 import { CategoryManager } from "@/components/CategoryManager";
-import ActivityLogViewer from "@/components/ActivityLogViewer";
 
 export default function Parametres() {
   const { profile, userRole, user } = useAuth();
@@ -88,11 +87,7 @@ export default function Parametres() {
         description="Configurez votre application"
       />
 
-      <div className="space-y-6">
-        {/* Activity Log (Owner only) - Full width */}
-        {userRole === "proprietaire" && <ActivityLogViewer />}
-
-        <div className="max-w-2xl space-y-6">
+      <div className="max-w-2xl space-y-6">
         {/* Profile Settings */}
         <Card className="shadow-card">
           <CardHeader>
@@ -241,7 +236,6 @@ export default function Parametres() {
             </CardContent>
           </Card>
         )}
-        </div>
       </div>
     </AppLayout>
   );
