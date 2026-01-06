@@ -256,12 +256,12 @@ export default function ActivityLogViewer() {
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label>Type d'action</Label>
-            <Select value={filterAction} onValueChange={(value) => { setFilterAction(value); setPage(1); }}>
+            <Select value={filterAction || "all"} onValueChange={(value) => { setFilterAction(value === "all" ? "" : value); setPage(1); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Toutes les actions" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Toutes les actions</SelectItem>
+                <SelectItem value="all">Toutes les actions</SelectItem>
                 {Object.entries(ACTION_LABELS).map(([key, { label }]) => (
                   <SelectItem key={key} value={key}>{label}</SelectItem>
                 ))}
