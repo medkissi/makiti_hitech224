@@ -48,6 +48,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { AppRole } from "@/lib/constants";
+import { logActivity } from "@/hooks/useActivityLogger";
 
 interface UserData {
   id: string;
@@ -182,6 +183,14 @@ export default function Utilisateurs() {
         description: `Utilisateur ${newUserNom} créé avec succès`,
       });
 
+      // Log activity
+      logActivity({
+        action_type: 'user_created',
+        entity_type: 'utilisateur',
+        entity_name: newUserNom,
+        details: { email: newUserEmail, role: newUserRole }
+      });
+
       setCreateDialogOpen(false);
       resetCreateForm();
       fetchUsers();
@@ -239,6 +248,15 @@ export default function Utilisateurs() {
         description: `Utilisateur ${editNom} modifié avec succès`,
       });
 
+      // Log activity
+      logActivity({
+        action_type: 'user_updated',
+        entity_type: 'utilisateur',
+        entity_id: editingUser.id,
+        entity_name: editNom,
+        details: { role: editRole }
+      });
+
       setEditDialogOpen(false);
       setEditingUser(null);
       fetchUsers();
@@ -282,6 +300,15 @@ export default function Utilisateurs() {
       toast({
         title: "Succès",
         description: `Utilisateur ${deletingUser.nom_complet} supprimé`,
+      });
+
+      // Log activity
+      logActivity({
+        action_type: 'user_deleted',
+        entity_type: 'utilisateur',
+        entity_id: deletingUser.id,
+        entity_name: deletingUser.nom_complet,
+        details: { email: deletingUser.email }
       });
 
       setDeleteDialogOpen(false);
@@ -330,6 +357,14 @@ export default function Utilisateurs() {
         description: banningUser.banned 
           ? `Utilisateur ${banningUser.nom_complet} réactivé`
           : `Utilisateur ${banningUser.nom_complet} désactivé`,
+      });
+
+      // Log activity
+      logActivity({
+        action_type: banningUser.banned ? 'user_unbanned' : 'user_banned',
+        entity_type: 'utilisateur',
+        entity_id: banningUser.id,
+        entity_name: banningUser.nom_complet
       });
 
       setBanDialogOpen(false);
@@ -394,6 +429,14 @@ export default function Utilisateurs() {
       toast({
         title: "Succès",
         description: `Mot de passe de ${passwordUser.nom_complet} modifié`,
+      });
+
+      // Log activity
+      logActivity({
+        action_type: 'password_changed',
+        entity_type: 'utilisateur',
+        entity_id: passwordUser.id,
+        entity_name: passwordUser.nom_complet
       });
 
       setPasswordDialogOpen(false);

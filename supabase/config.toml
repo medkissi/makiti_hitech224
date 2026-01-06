@@ -2,3 +2,6 @@ project_id = "qdbnrpbwuzdnhpixdbco"
 
 [functions.manage-users]
 verify_jwt = false
+
+[functions.activity-logs]
+verify_jwt = false

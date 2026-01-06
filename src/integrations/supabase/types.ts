@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action_type: Database["public"]["Enums"]["activity_type"]
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_name: string | null
+          entity_type: string | null
+          id: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["activity_type"]
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_name?: string | null
+          entity_type?: string | null
+          id?: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["activity_type"]
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_name?: string | null
+          entity_type?: string | null
+          id?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -393,6 +429,18 @@ export type Database = {
       }
       hash_pin_code: { Args: { pin: string }; Returns: string }
       is_authenticated: { Args: never; Returns: boolean }
+      log_activity: {
+        Args: {
+          p_action_type: Database["public"]["Enums"]["activity_type"]
+          p_details?: Json
+          p_entity_id?: string
+          p_entity_name?: string
+          p_entity_type?: string
+          p_user_id: string
+          p_user_name: string
+        }
+        Returns: string
+      }
       set_pin_code: {
         Args: { new_pin: string; user_id_param: string }
         Returns: boolean
@@ -403,6 +451,24 @@ export type Database = {
       }
     }
     Enums: {
+      activity_type:
+        | "login"
+        | "logout"
+        | "user_created"
+        | "user_updated"
+        | "user_deleted"
+        | "user_banned"
+        | "user_unbanned"
+        | "password_changed"
+        | "product_created"
+        | "product_updated"
+        | "product_deleted"
+        | "sale_created"
+        | "sale_deleted"
+        | "stock_updated"
+        | "category_created"
+        | "category_updated"
+        | "category_deleted"
       app_role: "proprietaire" | "employe"
       mode_paiement: "especes" | "mobile_money" | "carte" | "credit"
       taille_vetement:
@@ -542,6 +608,25 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_type: [
+        "login",
+        "logout",
+        "user_created",
+        "user_updated",
+        "user_deleted",
+        "user_banned",
+        "user_unbanned",
+        "password_changed",
+        "product_created",
+        "product_updated",
+        "product_deleted",
+        "sale_created",
+        "sale_deleted",
+        "stock_updated",
+        "category_created",
+        "category_updated",
+        "category_deleted",
+      ],
       app_role: ["proprietaire", "employe"],
       mode_paiement: ["especes", "mobile_money", "carte", "credit"],
       taille_vetement: ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL"],

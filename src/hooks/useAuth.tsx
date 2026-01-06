@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AppRole } from "@/lib/constants";
@@ -28,6 +28,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [profile, setProfile] = useState<AuthContextType["profile"]>(null);
   const [loading, setLoading] = useState(true);
+  const loginLoggedRef = useRef(false);
+
+  const logLoginActivity = async (userId: string) => {
+    if (loginLoggedRef.current) return;
+    loginLoggedRef.current = true;
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session?.access_token) {
+        await supabase.functions.invoke('activity-logs', {
+          body: { 
+            action: 'log',
+            action_type: 'login'
+          },
+          headers: {
+            Authorization: `Bearer ${sessionData.session.access_token}`
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error logging login activity:', error);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -40,11 +63,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           setTimeout(() => {
             fetchUserData(session.user.id);
+            // Log login on SIGNED_IN event
+            if (event === 'SIGNED_IN') {
+              logLoginActivity(session.user.id);
+            }
           }, 0);
         } else {
           setUserRole(null);
           setProfile(null);
           setLoading(false);
+          loginLoggedRef.current = false;
         }
       }
     );
