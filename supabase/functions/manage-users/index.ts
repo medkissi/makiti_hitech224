@@ -36,7 +36,19 @@ interface ListUsersPayload {
   action: 'list'
 }
 
-type RequestPayload = CreateUserPayload | DeleteUserPayload | UpdateRolePayload | UpdateProfilePayload | ListUsersPayload
+interface ToggleBanPayload {
+  action: 'toggle_ban'
+  user_id: string
+  ban: boolean
+}
+
+interface UpdatePasswordPayload {
+  action: 'update_password'
+  user_id: string
+  new_password: string
+}
+
+type RequestPayload = CreateUserPayload | DeleteUserPayload | UpdateRolePayload | UpdateProfilePayload | ListUsersPayload | ToggleBanPayload | UpdatePasswordPayload
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -134,17 +146,21 @@ Deno.serve(async (req) => {
           .from('user_roles')
           .select('*')
 
-        // Combine data
+        // Combine data with banned status and last sign in
         const usersWithData = users.users.map(user => {
           const profile = profiles?.find(p => p.user_id === user.id)
           const role = roles?.find(r => r.user_id === user.id)
+          const userAny = user as any
           return {
             id: user.id,
             email: user.email,
             nom_complet: profile?.nom_complet || user.email,
             telephone: profile?.telephone,
             role: role?.role || 'employe',
-            created_at: user.created_at
+            created_at: user.created_at,
+            banned: userAny.banned_until ? new Date(userAny.banned_until) > new Date() : false,
+            banned_until: userAny.banned_until,
+            last_sign_in_at: user.last_sign_in_at
           }
         })
 
@@ -376,6 +392,89 @@ Deno.serve(async (req) => {
           console.log('Role updated successfully')
         }
 
+        return new Response(
+          JSON.stringify({ success: true }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      case 'toggle_ban': {
+        const { user_id, ban } = payload as ToggleBanPayload
+
+        if (!user_id) {
+          return new Response(
+            JSON.stringify({ error: 'Missing user_id' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        // Prevent banning yourself
+        if (user_id === currentUser.id) {
+          return new Response(
+            JSON.stringify({ error: 'Cannot ban/unban your own account' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log('Toggle ban for user:', user_id, 'ban:', ban)
+
+        // Update user ban status
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+          user_id,
+          { 
+            ban_duration: ban ? '876000h' : 'none' // 100 years if banning, 'none' to unban
+          }
+        )
+
+        if (updateError) {
+          console.error('Error toggling ban:', updateError)
+          return new Response(
+            JSON.stringify({ error: updateError.message }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log('Ban status updated successfully')
+        return new Response(
+          JSON.stringify({ success: true, banned: ban }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      case 'update_password': {
+        const { user_id, new_password } = payload as UpdatePasswordPayload
+
+        if (!user_id || !new_password) {
+          return new Response(
+            JSON.stringify({ error: 'Missing user_id or new_password' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        if (new_password.length < 6) {
+          return new Response(
+            JSON.stringify({ error: 'Password must be at least 6 characters' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log('Updating password for user:', user_id)
+
+        // Update user password
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+          user_id,
+          { password: new_password }
+        )
+
+        if (updateError) {
+          console.error('Error updating password:', updateError)
+          return new Response(
+            JSON.stringify({ error: updateError.message }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        console.log('Password updated successfully')
         return new Response(
           JSON.stringify({ success: true }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

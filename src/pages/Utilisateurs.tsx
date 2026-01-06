@@ -7,7 +7,10 @@ import {
   Store, 
   UserCheck,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Ban,
+  CheckCircle,
+  Key
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -53,6 +56,9 @@ interface UserData {
   telephone: string | null;
   role: AppRole;
   created_at: string;
+  banned: boolean;
+  banned_until: string | null;
+  last_sign_in_at: string | null;
 }
 
 export default function Utilisateurs() {
@@ -79,6 +85,16 @@ export default function Utilisateurs() {
   // Delete confirmation state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<UserData | null>(null);
+
+  // Ban confirmation state
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [banningUser, setBanningUser] = useState<UserData | null>(null);
+
+  // Password change dialog state
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordUser, setPasswordUser] = useState<UserData | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     fetchUsers();
@@ -283,6 +299,119 @@ export default function Utilisateurs() {
     }
   };
 
+  const handleToggleBan = async () => {
+    if (!banningUser) return;
+
+    setActionLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      const response = await supabase.functions.invoke('manage-users', {
+        body: { 
+          action: 'toggle_ban',
+          user_id: banningUser.id,
+          ban: !banningUser.banned
+        },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Erreur lors de la modification');
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      toast({
+        title: "Succès",
+        description: banningUser.banned 
+          ? `Utilisateur ${banningUser.nom_complet} réactivé`
+          : `Utilisateur ${banningUser.nom_complet} désactivé`,
+      });
+
+      setBanDialogOpen(false);
+      setBanningUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error toggling ban:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de modifier le statut",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!passwordUser) return;
+
+    if (!newPassword || newPassword.length < 6) {
+      toast({
+        title: "Erreur",
+        description: "Le mot de passe doit contenir au moins 6 caractères",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Erreur",
+        description: "Les mots de passe ne correspondent pas",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      const response = await supabase.functions.invoke('manage-users', {
+        body: { 
+          action: 'update_password',
+          user_id: passwordUser.id,
+          new_password: newPassword
+        },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Erreur lors de la modification');
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      toast({
+        title: "Succès",
+        description: `Mot de passe de ${passwordUser.nom_complet} modifié`,
+      });
+
+      setPasswordDialogOpen(false);
+      setPasswordUser(null);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de modifier le mot de passe",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const resetCreateForm = () => {
     setNewUserEmail("");
     setNewUserPassword("");
@@ -303,11 +432,34 @@ export default function Utilisateurs() {
     setDeleteDialogOpen(true);
   };
 
+  const openBanDialog = (user: UserData) => {
+    setBanningUser(user);
+    setBanDialogOpen(true);
+  };
+
+  const openPasswordDialog = (user: UserData) => {
+    setPasswordUser(user);
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordDialogOpen(true);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'short',
       year: 'numeric'
+    });
+  };
+
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return "Jamais connecté";
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -347,7 +499,7 @@ export default function Utilisateurs() {
               Utilisateurs ({users.length})
             </CardTitle>
             <CardDescription>
-              Liste de tous les utilisateurs avec leurs rôles
+              Liste de tous les utilisateurs avec leurs rôles et statuts
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -368,13 +520,14 @@ export default function Utilisateurs() {
                       <TableHead>Nom</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Rôle</TableHead>
-                      <TableHead>Créé le</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Dernière connexion</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {users.map((user) => (
-                      <TableRow key={user.id}>
+                      <TableRow key={user.id} className={user.banned ? "opacity-60" : ""}>
                         <TableCell className="font-medium">{user.nom_complet}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
@@ -389,17 +542,48 @@ export default function Utilisateurs() {
                             )}
                           </Badge>
                         </TableCell>
-                        <TableCell>{formatDate(user.created_at)}</TableCell>
+                        <TableCell>
+                          {user.banned ? (
+                            <Badge variant="destructive" className="gap-1">
+                              <Ban className="h-3 w-3" /> Désactivé
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="gap-1 text-green-600 border-green-600">
+                              <CheckCircle className="h-3 w-3" /> Actif
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatDateTime(user.last_sign_in_at)}
+                        </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-1">
                             <Button
                               variant="outline"
                               size="icon"
                               onClick={() => openEditDialog(user)}
                               disabled={user.id === currentUser?.id}
-                              title={user.id === currentUser?.id ? "Vous ne pouvez pas modifier votre propre rôle" : "Modifier le rôle"}
+                              title="Modifier"
                             >
                               <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => openPasswordDialog(user)}
+                              title="Changer mot de passe"
+                            >
+                              <Key className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => openBanDialog(user)}
+                              disabled={user.id === currentUser?.id}
+                              className={user.banned ? "text-green-600 hover:text-green-600" : "text-orange-600 hover:text-orange-600"}
+                              title={user.banned ? "Réactiver" : "Désactiver"}
+                            >
+                              {user.banned ? <CheckCircle className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
                             </Button>
                             <Button
                               variant="outline"
@@ -407,7 +591,7 @@ export default function Utilisateurs() {
                               onClick={() => openDeleteDialog(user)}
                               disabled={user.id === currentUser?.id}
                               className="text-destructive hover:text-destructive"
-                              title={user.id === currentUser?.id ? "Vous ne pouvez pas supprimer votre propre compte" : "Supprimer"}
+                              title="Supprimer"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -611,6 +795,99 @@ export default function Utilisateurs() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Password Change Dialog */}
+        <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Changer le mot de passe</DialogTitle>
+              <DialogDescription>
+                Définissez un nouveau mot de passe pour {passwordUser?.nom_complet}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">Nouveau mot de passe</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  placeholder="Minimum 6 caractères"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={actionLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="Confirmez le mot de passe"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={actionLoading}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setPasswordDialogOpen(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+                disabled={actionLoading}
+              >
+                Annuler
+              </Button>
+              <Button 
+                onClick={handleUpdatePassword}
+                disabled={actionLoading}
+              >
+                {actionLoading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Mise à jour...</>
+                ) : (
+                  <><Key className="h-4 w-4 mr-2" /> Changer</>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Ban Confirmation Dialog */}
+        <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {banningUser?.banned ? "Réactiver" : "Désactiver"} l'utilisateur ?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {banningUser?.banned ? (
+                  <>Voulez-vous réactiver le compte de <strong>{banningUser?.nom_complet}</strong> ? L'utilisateur pourra à nouveau se connecter.</>
+                ) : (
+                  <>Voulez-vous désactiver le compte de <strong>{banningUser?.nom_complet}</strong> ? L'utilisateur ne pourra plus se connecter.</>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={actionLoading}>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleToggleBan}
+                disabled={actionLoading}
+                className={banningUser?.banned ? "bg-green-600 hover:bg-green-700" : "bg-orange-600 hover:bg-orange-700"}
+              >
+                {actionLoading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> En cours...</>
+                ) : banningUser?.banned ? (
+                  <><CheckCircle className="h-4 w-4 mr-2" /> Réactiver</>
+                ) : (
+                  <><Ban className="h-4 w-4 mr-2" /> Désactiver</>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
