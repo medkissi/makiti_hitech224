@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, ShoppingCart, Minus, Trash2, CreditCard, Search } from "lucide-react";
+import { Plus, ShoppingCart, Minus, Trash2, CreditCard, Search, Pencil, Check, X } from "lucide-react";
 import { StockIndicator, SizeStockBadges } from "@/components/StockIndicator";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -25,7 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency, MODES_PAIEMENT, ModePaiement, Taille, getTodayDate } from "@/lib/constants";
+import { formatCurrency, ModePaiement, Taille, getTodayDate } from "@/lib/constants";
 
 interface Product {
   id: string;
@@ -65,6 +65,14 @@ export default function Ventes() {
   const [modePaiement, setModePaiement] = useState<ModePaiement>("especes");
   const [processing, setProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingPriceItem, setEditingPriceItem] = useState<string | null>(null);
+  const [tempPrice, setTempPrice] = useState<string>("");
+
+  // Payment modes for this store (only Espèces and Orange Money)
+  const PAYMENT_MODES = [
+    { value: "especes", label: "Espèces" },
+    { value: "mobile_money", label: "Orange Money" },
+  ] as const;
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -169,6 +177,31 @@ export default function Ventes() {
 
   const removeFromCart = (productId: string, taille: Taille) => {
     setCart(cart.filter((item) => !(item.product.id === productId && item.taille === taille)));
+  };
+
+  const startEditPrice = (productId: string, taille: Taille, currentPrice: number) => {
+    setEditingPriceItem(`${productId}-${taille}`);
+    setTempPrice(currentPrice.toString());
+  };
+
+  const confirmEditPrice = (productId: string, taille: Taille) => {
+    const newPrice = parseInt(tempPrice, 10);
+    if (!isNaN(newPrice) && newPrice >= 0) {
+      setCart(
+        cart.map((item) =>
+          item.product.id === productId && item.taille === taille
+            ? { ...item, prix_unitaire: newPrice }
+            : item
+        )
+      );
+    }
+    setEditingPriceItem(null);
+    setTempPrice("");
+  };
+
+  const cancelEditPrice = () => {
+    setEditingPriceItem(null);
+    setTempPrice("");
   };
 
   const getCartTotal = () => {
@@ -381,7 +414,50 @@ export default function Ventes() {
                         <p className="font-medium truncate">{item.product.nom}</p>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Badge variant="outline">{item.taille}</Badge>
-                          <span>{formatCurrency(item.prix_unitaire)}</span>
+                          {editingPriceItem === `${item.product.id}-${item.taille}` ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="number"
+                                value={tempPrice}
+                                onChange={(e) => setTempPrice(e.target.value)}
+                                className="h-6 w-20 text-xs"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') confirmEditPrice(item.product.id, item.taille);
+                                  if (e.key === 'Escape') cancelEditPrice();
+                                }}
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5 text-success"
+                                onClick={() => confirmEditPrice(item.product.id, item.taille)}
+                              >
+                                <Check className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5 text-destructive"
+                                onClick={cancelEditPrice}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <span>{formatCurrency(item.prix_unitaire)}</span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5 text-muted-foreground hover:text-primary"
+                                onClick={() => startEditPrice(item.product.id, item.taille, item.prix_unitaire)}
+                                title="Modifier le prix"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -451,7 +527,7 @@ export default function Ventes() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {MODES_PAIEMENT.map((mode) => (
+                  {PAYMENT_MODES.map((mode) => (
                     <SelectItem key={mode.value} value={mode.value}>
                       {mode.label}
                     </SelectItem>
