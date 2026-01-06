@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, ShoppingCart, Minus, Trash2, CreditCard, Search } from "lucide-react";
-import { StockIndicator } from "@/components/StockIndicator";
+import { StockIndicator, SizeStockBadges } from "@/components/StockIndicator";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -263,11 +263,7 @@ export default function Ventes() {
     }
   };
 
-  const availableSizes = (product: Product) => {
-    return product.stock
-      .filter((s) => s.quantite_actuelle > 0)
-      .map((s) => s.taille);
-  };
+  // Removed availableSizes function - now using SizeStockBadges component
 
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
@@ -347,19 +343,10 @@ export default function Ventes() {
                         <p className="text-primary font-bold text-sm mb-2">
                           {formatCurrency(product.prix_unitaire)}
                         </p>
-                        <div className="flex flex-wrap gap-1">
-                          {availableSizes(product).map((taille) => (
-                            <Button
-                              key={taille}
-                              size="sm"
-                              variant="outline"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => addToCart(product, taille)}
-                            >
-                              {taille}
-                            </Button>
-                          ))}
-                        </div>
+                        <SizeStockBadges
+                          stock={product.stock}
+                          onSizeClick={(taille) => addToCart(product, taille)}
+                        />
                       </div>
                     );
                   })}
