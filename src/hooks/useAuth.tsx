@@ -10,7 +10,7 @@ interface AuthContextType {
   profile: {
     id: string;
     nom_complet: string;
-    pin_code: string | null;
+    has_pin_code: boolean;
     telephone: string | null;
   } | null;
   loading: boolean;
@@ -66,9 +66,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch profile
+      // Fetch profile using the safe view that excludes sensitive fields
       const { data: profileData } = await supabase
-        .from("profiles")
+        .from("profiles_safe")
         .select("*")
         .eq("user_id", userId)
         .single();
@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile({
           id: profileData.id,
           nom_complet: profileData.nom_complet,
-          pin_code: profileData.pin_code,
+          has_pin_code: profileData.has_pin_code || false,
           telephone: profileData.telephone,
         });
       }
@@ -145,19 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithPin = async (pin: string) => {
-    // Find user by PIN code
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("user_id")
-      .eq("pin_code", pin)
-      .single();
-
-    if (profileError || !profileData) {
-      return { error: new Error("Code PIN invalide") };
-    }
-
-    // For PIN login, we need the user's email to sign in
-    // This is a simplified approach - in production, you'd use a more secure method
+    // PIN verification is now done server-side via the verify_pin_code function
+    // This method is deprecated - PIN codes are hashed and cannot be searched directly
     return { error: new Error("Connexion PIN non disponible - utilisez email/mot de passe") };
   };
 

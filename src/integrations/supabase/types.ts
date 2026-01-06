@@ -118,6 +118,7 @@ export type Database = {
           id: string
           nom_complet: string
           pin_code: string | null
+          pin_code_hash: string | null
           telephone: string | null
           updated_at: string
           user_id: string
@@ -127,6 +128,7 @@ export type Database = {
           id?: string
           nom_complet: string
           pin_code?: string | null
+          pin_code_hash?: string | null
           telephone?: string | null
           updated_at?: string
           user_id: string
@@ -136,6 +138,7 @@ export type Database = {
           id?: string
           nom_complet?: string
           pin_code?: string | null
+          pin_code_hash?: string | null
           telephone?: string | null
           updated_at?: string
           user_id?: string
@@ -349,7 +352,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_safe: {
+        Row: {
+          created_at: string | null
+          has_pin_code: boolean | null
+          id: string | null
+          nom_complet: string | null
+          telephone: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          has_pin_code?: never
+          id?: string | null
+          nom_complet?: string | null
+          telephone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          has_pin_code?: never
+          id?: string | null
+          nom_complet?: string | null
+          telephone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -359,7 +391,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      hash_pin_code: { Args: { pin: string }; Returns: string }
       is_authenticated: { Args: never; Returns: boolean }
+      set_pin_code: {
+        Args: { new_pin: string; user_id_param: string }
+        Returns: boolean
+      }
+      verify_pin_code: {
+        Args: { pin: string; user_id_param: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "proprietaire" | "employe"

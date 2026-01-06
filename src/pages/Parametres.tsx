@@ -36,21 +36,34 @@ export default function Parametres() {
 
     setSaving(true);
     try {
-      const updates: any = {
-        nom_complet: nomComplet,
-        telephone: telephone || null,
-      };
-
-      if (pinCode && pinCode.length >= 4) {
-        updates.pin_code = pinCode;
-      }
-
-      const { error } = await supabase
+      // Update profile info (without PIN)
+      const { error: profileError } = await supabase
         .from("profiles")
-        .update(updates)
+        .update({
+          nom_complet: nomComplet,
+          telephone: telephone || null,
+        })
         .eq("user_id", user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // If PIN is provided, use the secure server-side function to hash and store it
+      if (pinCode && pinCode.length >= 4) {
+        const { error: pinError } = await supabase.rpc("set_pin_code", {
+          user_id_param: user.id,
+          new_pin: pinCode,
+        });
+
+        if (pinError) {
+          console.error("Error setting PIN:", pinError);
+          toast({
+            title: "Erreur",
+            description: "Impossible de définir le code PIN",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
 
       toast({ title: "Profil mis à jour" });
       setPinCode("");
@@ -118,17 +131,22 @@ export default function Parametres() {
             <Separator />
 
             <div className="space-y-2">
-              <Label htmlFor="pin">Code PIN (pour connexion rapide)</Label>
+              <Label htmlFor="pin">
+                Code PIN (pour connexion rapide)
+                {profile?.has_pin_code && (
+                  <span className="ml-2 text-xs text-success">(déjà configuré)</span>
+                )}
+              </Label>
               <Input
                 id="pin"
                 type="password"
                 value={pinCode}
                 onChange={(e) => setPinCode(e.target.value)}
-                placeholder="Minimum 4 chiffres"
+                placeholder={profile?.has_pin_code ? "Nouveau code PIN (laisser vide pour garder)" : "Minimum 4 chiffres"}
                 maxLength={6}
               />
               <p className="text-xs text-muted-foreground">
-                Laissez vide pour ne pas modifier
+                Le code PIN est stocké de manière sécurisée (haché)
               </p>
             </div>
 
