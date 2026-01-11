@@ -2,7 +2,7 @@
 
 ## Installation et démarrage
 
-1. Clone le repo : git clone https://github.com/Doumbouya967/tech-stack-explorer.git
+1. Clone le repo : git clone https://github.com/Doumbouya967
 2. Navigue dans le dossier : cd tech-stack-explorer
 3. Installe les dépendances : npm install
 4. Lance le serveur de dev : npm run dev
